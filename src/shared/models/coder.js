@@ -1,4 +1,4 @@
-var Backbone = require('Backbone'),
+var Backbone = require('backbone'),
 		$ = require('jquery');
 
 var fs = require('fs');

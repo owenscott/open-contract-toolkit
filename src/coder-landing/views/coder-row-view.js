@@ -1,4 +1,4 @@
-var Backbone = require('Backbone'),
+var Backbone = require('backbone'),
 		$ = require('jquery'),
 		_ = require('underscore'),
 		path = require('path');
