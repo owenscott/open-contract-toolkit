@@ -1,0 +1,18 @@
+<td><%=name%></td>
+<td><%=assignedContracts%></td>
+<td>
+	<% if (completedContracts === 'unknown') { %>
+		<em><%=completedContracts%></em>
+	<% } else { %> 
+		<%=completedContracts%> 
+	<% } %>
+</td>
+
+<td>
+	<% if(assignedContracts) { %>  
+		<a href="coding/<%=_id%>">Start Coding</a> 
+	<% } else { %> 
+		<span>No Contracts Assigned</span> 
+	<% } %>
+	
+</td>

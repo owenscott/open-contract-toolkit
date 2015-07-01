@@ -1,0 +1,27 @@
+<h2>Assign Contracts to Coders</h2>
+<table class="table table-striped">
+	<thead>
+		<tr>
+			<th>Coder</th>
+			<th>Eligible Contracts</th>
+			<th>Assigned Contracts</th>
+			<th>Assign Contracts</th>
+		</tr>
+	</thead>
+	<tbody id="coders">
+		<tr>
+			<td colspan="4">
+				<p>Loading Coders...</p><img src="ajax-loader.gif"/>
+			</td>
+		</tr>
+		<!-- populated by backbone -->
+	</tbody>
+</table>
+<form id="new-coder-form" class="form-inline">
+	<label for="name">Name</label>
+	<input type="text" placeholder="Coder Name" class="form-control" name="name">
+	<label for="email">Email</label>
+	<input type="email" placeholder="someone@website.com" class="form-control" name="email">
+	<button class="button btn-success" id="add-coder">Add New Coder</button>
+</form>
+

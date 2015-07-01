@@ -1,0 +1,9 @@
+{
+	"contentHost": "0.0.0.0",
+	"contentPort": 8000,
+	"apiHost": "0.0.0.0",
+	"apiPort": 8007,
+	"mongoHost": "localhost",
+	"mongoPort": 27017,
+	"dbName": "contract-test"
+}
