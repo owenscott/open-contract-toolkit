@@ -2,3 +2,5 @@
 static/admin-bundle.js
 static/coder-landing-bundle.js
 static/coding-bundle.js
+node_modules
+

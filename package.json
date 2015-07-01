@@ -1,0 +1,32 @@
+{
+  "name": "open_contract_toolkit",
+  "version": "0.0.1",
+  "description": "An MVP toolkit for double-blind coding of unstructured public procurement contracts.",
+  "main": "server/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/owenscott/open-contract-toolkit"
+  },
+  "author": "Owen Scott",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/owenscott/open-contract-toolkit/issues"
+  },
+  "homepage": "https://github.com/owenscott/open-contract-toolkit",
+  "dependencies": {
+    "async": "^1.3.0",
+    "backbone": "^1.2.1",
+    "backbone.paginator": "^2.0.2",
+    "hapi": "^8.6.1",
+    "jquery": "^2.1.4",
+    "mongodb": "^2.0.35",
+    "underscore": "^1.8.3",
+    "winston": "^1.0.1"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.0"
+  }
+}
