@@ -1,1 +1,4 @@
 .DS_Store
+static/admin-bundle.js
+static/coder-landing-bundle.js
+static/coding-bundle.js
