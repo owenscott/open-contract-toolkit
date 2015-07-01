@@ -10,11 +10,12 @@ mongodb.connect('mongodb://localhost:27017/contract-test', function(err, db) {
 		
 		err && console.log(err);
 
-		_.range(0,5).forEach(function(num) {
+		_.range(0,process.argv[2]).forEach(function(num) {
 			db.collection('contracts').insert({
-				title: randomWords(5).join(' '),
+				title: randomWords(3).join(' '),
 				assigned: [],
-				fullyAssigned: false
+				fullyAssigned: false,
+				completed: false
 			})
 		})
 

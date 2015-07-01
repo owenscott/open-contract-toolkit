@@ -37,6 +37,24 @@ winston.loggers.add('console', {
 var logger = winston.loggers.get('console');
 
 
+function getEligible(coderId, callback) {
+
+	var queryObj = {}
+	var eligibleContracts = 0;
+
+	coderId = mongoObjectId(coderId);
+	
+	mongodb.connect(dbUrl, function(err, db) {
+		db.collection('contracts').find({assigned: {$ne: coderId}, fullyAssigned: false}).toArray(function(err, contracts) {
+
+			callback(err, (contracts && contracts.length) || 0);
+
+		})	
+	})
+
+
+}
+
 // terrible O(n^2) algorithm to brute-force update the entire DB to be internally consistent
 function updateDb(callback) {
 
@@ -45,9 +63,9 @@ function updateDb(callback) {
 		if (err) console.log(err);
 
 		db.collection('contracts').find({}).toArray(function(err, contracts) {
-
+			if (err) logger.error(err);
 			db.collection('coders').find({}).toArray(function(err, coders) {
-
+				if (err) logger.error(err);
 				async.each(coders, function(coder, callback) {
 
 					var queryObj = _.pick(coder, '_id');
@@ -84,7 +102,7 @@ content.route({
 	method: 'GET',
 	handler: {
 		file: {
-			path: './admin.html'
+			path: './pages/admin.html'
 		}
 	}
 })
@@ -95,7 +113,7 @@ content.route({
 	method: 'GET',
 	handler: {
 		file: {
-			path: './coder-landing.html'
+			path: './pages/coder-landing.html'
 		}
 	}
 })
@@ -105,7 +123,7 @@ content.route({
 	method: 'GET',
 	handler: {
 		file: {
-			path: './coder-interface.html'
+			path: './pages/coder-interface.html'
 		}
 	}
 })
@@ -132,6 +150,43 @@ content.route({
 	method: 'GET',
 	handler: function(request, reply) {
 		reply.file('./' + 'src/' + request.params.dir + '/' + request.params.resource);
+	}
+})
+
+content.route({
+	path: '/contracts', 
+	method: 'GET',
+	handler: function(request, reply) {
+		var replyText = '<html><head><link rel="stylesheet" href="bootstrap.min.css"></head><body><div class="container"><h1>All the Contracts</h1><table class="table table-striped">'
+		replyText = replyText + '<thead><tr><th>Title</th><th>Coder 1</th><th>Coder 2</th><th>Fully Assigned</th></tr></thead><tbody>'
+		mongodb.connect(dbUrl, function(err, db) {
+			if (err) logger.error(err);
+			db.collection('contracts').find({}).toArray(function(err, contracts) {
+				
+				var t = ''
+				async.eachSeries(contracts, function(contract, callback) {
+					var coders = [];
+					async.eachSeries(contract.assigned, function(coderId, callback) {
+						db.collection('coders').find({_id: mongoObjectId(coderId)}).toArray(function(err, coder) {
+							coders.push(coder[0].name);
+							callback();
+						})
+					},
+					function(err) {
+						var row = '<tr><td>' + contract.title + '</td><td>' + (coders[0] || '') + '</td><td>' + (coders[1] || '') + '</td><td>' + contract.fullyAssigned + '</td></tr>'
+						replyText = replyText + row;
+						callback()
+					})
+					
+				}, 
+				function(err) {
+					replyText = replyText + '</tbody></table></div></body></html>'
+					db.close();
+					reply(replyText);
+				})
+			
+			})
+		})
 	}
 })
 
@@ -175,7 +230,17 @@ api.route({
 
 			db.collection('coders').find(queryObj).toArray(function(err, coders) {
 				if (coders.length > 1) console.log('ERROR: too many coders');
-				reply(coders[0]);
+				
+				var coder = coders[0];
+				coder.assignedContracts = coder.assigned.length;
+				getEligible(coder._id, function(err, numEligible) {
+					coder.eligibleContracts = numEligible;
+					db.collection('coders').update(queryObj, coder, function(err, results) {
+						reply(coder);
+						db.close();
+					})
+				})
+
 			})
 
 		})
@@ -202,6 +267,7 @@ api.route({
 			var contractsToAssign = 0;
 
 			mongodb.connect(dbUrl, function(err, db) {
+
 				db.collection('coders').find(searchObj).toArray(function(err, coders) {
 
 					err && console.log(err);
@@ -277,17 +343,34 @@ api.route({
 	handler: function(request, reply) {
 
 		mongodb.connect(dbUrl, function(err, db) {
-			db.collection('coders').insert(request.payload, function(err, something) {
+			db.collection('coders').insert(request.payload, function(err, result) {
+				// result.ops[0].eligibleContracts = 56
+				var coder = result.ops[0]
+				getEligible(coder._id, function(err, numEligible) {
+					
+					logger.info(coder._id, 'eligible for', numEligible);
+					coder.eligibleContracts = numEligible;
+					reply(coder);
+					db.close();
 
-				// assign contracts and update
-
-				reply(true);
-				db.close();
+				})
 			})
 		})
 
 	}
 })
+
+api.route({
+	path: '/coders',
+	method: 'OPTIONS',
+	config: {
+		cors: true
+	},
+	handler: function(request, reply) {
+		reply();
+	}
+})
+
 
 
 api.route({
@@ -301,6 +384,15 @@ api.route({
 			var stats = {}
 			db.collection('contracts').find({}).toArray(function(err, arr) {
 				stats.count = arr.length;
+				stats.singleAssigned = _.filter(arr, function(contract) {
+					return contract.assigned.length === 1
+				}).length
+				stats.doubleAssigned = _.filter(arr, function(contract) {
+					return contract.assigned.length === 2 && !contract.completed;
+				}).length
+				stats.completed = _.filter(arr, function(contract) {
+					return contract.completed === 1;
+				}).length
 				reply(stats);
 				db.close();
 			})
@@ -316,8 +408,50 @@ api.route({
 		cors: true
 	},
 	handler: function(request, reply) {
-		// mongo
-		reply({success: true});
+
+		var coderId = mongoObjectId(request.payload.coder);
+
+		mongodb.connect(dbUrl, function(err, db) {
+			if (err) logger.error(err);
+			// find coder
+			db.collection('coders').find({_id: mongoObjectId(coderId)}).toArray(function(err, coders) {
+				
+				if (coders.length > 1) logger.warn('Multiple coders returned for one assignment request');
+				if (err) logger.error(err);
+
+				var coder = coders[0];
+				// find contracts for coder
+				db.collection('contracts').find({assigned: {$ne: coderId}, fullyAssigned: false}).limit(parseInt(request.payload.contractsToAssign)).toArray(function(err, contracts) {
+					// assign the coder to each of the contracts
+					async.each(contracts, function(contract, callback) {
+						// assign the coder to the contract (and vice versa)
+						contract.assigned.push(coderId);
+						if (contract.assigned.length === 2) {
+							contract.fullyAssigned = true;
+						}
+						coder.assigned.push(contract._id);
+						// update the contract
+						// TODO: this should really be restful with built-in checks
+						db.collection('contracts').update({_id: contract._id}, contract, function(err, result) {
+							if (err) logger.error(err);
+							callback();							
+						})
+
+					}, 
+					// update the coder
+					function(err) {
+						coder.assignedContracts = coder.assigned.count;
+						getEligible(coder._id, function(err, numEligible) {
+							coder.numEligible = numEligible;
+							// TODO: this should really be restful with built-in checks
+							db.collection('coders').update({_id: coder._id}, coder, function(err, result) {
+								reply({success: true})
+							})
+						})
+					})
+				})
+			})
+		})
 	}
 })
 

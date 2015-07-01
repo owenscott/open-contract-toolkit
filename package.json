@@ -27,6 +27,7 @@
     "winston": "^1.0.1"
   },
   "devDependencies": {
-    "gulp": "^3.9.0"
+    "gulp": "^3.9.0",
+    "random-words": "0.0.1"
   }
 }

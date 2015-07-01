@@ -4,6 +4,7 @@ var Backbone = require('Backbone'),
 		path = require('path');
 
 var fs = require('fs');
+var conf = JSON.parse(fs.readFileSync('./conf.json').toString());
 
 Backbone.$ = $;
 
@@ -13,9 +14,10 @@ module.exports = Backbone.View.extend({
 	tagName: 'tr',
 
 	initialize: function() {
+		var self = this;
 		this.template = _.template(fs.readFileSync(path.join(__dirname, '../templates/coder-table.ejs')).toString());
 		this.model.on('sync', function() {
-			console.log('sunk');
+			self.render();
 		})
 	},
 
@@ -31,7 +33,7 @@ module.exports = Backbone.View.extend({
 
 	onButtonClick: function(e) {
 
-
+		var self = this;
 		e.preventDefault();
 
 		var form = e.target.closest('form');
@@ -43,27 +45,29 @@ module.exports = Backbone.View.extend({
 		})
 
 		dataObj.coder = this.model.get('_id');
-		console.log(dataObj);
-		$(form).trigger('reset');
 
-		$.post('contract-assign', dataObj, function(result) {
-			console.log(result);
+		// temporarily disable submit forms to prevent race condition on server		
+		$('.assign-form').prop('disabled', true);
+
+		// send an imperative API request to assign new contracts to the coder
+		// API request handler updates all contracts and coders as a side-effect
+		$.post('http://' + conf.apiHost + ':' + conf.apiPort + '/contract-assign', dataObj, function(result) {
+			
+			// re-enable submit forms
+			// $(form).trigger('reset');
+			// $('.assign-form').prop('disabled', false);
+
+			// sync all of the models (which triggers re-render)
+			self.model.collection.models.forEach(function(model) {
+				model.fetch({
+					success: function() {
+						// nothingn yet
+					}
+				})
+			})
 		})
 
-		// dataObj.contractsToAssign = parseInt(dataObj.contractsToAssign)
-		// var eligibleContracts = this.model.get('eligibleContracts');
 
-		// if (dataObj.contractsToAssign <= eligibleContracts && dataObj.contractsToAssign > 0) {
-		// 	this.model.set('eligibleContracts', eligibleContracts - dataObj.contractsToAssign);
-		// 	this.model.set('assignedContracts', this.model.get('assignedContracts') + dataObj.contractsToAssign)
-		// 	this.model.save();
-		// 	// race condition
-		// 	this.model.collection.fetch();
-		// 	this.render();
-		// }
-		// else {
-		// 	$(form).trigger('reset');
-		// }
 
 	}
 

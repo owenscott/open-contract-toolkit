@@ -11,7 +11,9 @@ var Coder = require('./../models/coder.js');
 module.exports = Backbone.Collection.extend({
 
 	initialize: function(settings) {
-		
+		this.on('change:assigned', function() {
+			console.log('someoen had new contracts assigned');
+		})
 	},
 
 	url: 'http://' + conf.apiHost + ':' + conf.apiPort + '/coders',

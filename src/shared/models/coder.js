@@ -20,8 +20,9 @@ module.exports = Backbone.Model.extend({
 	defaults: {
 		assignedContracts: 0,
 		eligibleContracts: 'unknown',
-		completedContracts: 'unknown',
-		assigned: []
+		completedContracts: 0,
+		assigned: [],
+		completed: []
 	},
 
 	urlRoot: 'http://' + conf.apiHost + ':' + conf.apiPort + '/coders'
