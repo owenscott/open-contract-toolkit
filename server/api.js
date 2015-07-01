@@ -24,8 +24,6 @@ function getEligible(coderId, callback) {
 
 		})	
 	})
-
-
 }
 
 // terrible O(n^2) algorithm to brute-force update the entire DB to be internally consistent
