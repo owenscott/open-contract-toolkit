@@ -1,7 +1,7 @@
 {
 	"contentHost": "0.0.0.0",
-	"contentPort": 8000,
-	"apiHost": "0.0.0.0",
+	"contentPort": 80,
+	"apiHost": "104.236.103.5",
 	"apiPort": 8007,
 	"mongoHost": "localhost",
 	"mongoPort": 27017,
