@@ -21,8 +21,13 @@ module.exports = Backbone.View.extend({
 
 	render: function() {
 		console.log(this.model.toJSON());
-		this.$el.html(this.template(this.model.toJSON()));
-		return this;
+		if (!this.model.get('active')) {
+			this.$el.remove();
+		}
+		else {
+			this.$el.html(this.template(this.model.toJSON()));
+		}
+		return this;	
 	},
 
 	events: {

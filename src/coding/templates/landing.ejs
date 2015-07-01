@@ -23,7 +23,8 @@
 		<div class="col-md-12">
 			<button id="nav-start" class="btn btn-small">&lt;&lt;</button>
 			<button id="nav-backward" class="btn btn-small">&lt;</button>
-			<input type="text" class="input input-small">
+			<!--<input type="text" class="input goto">-->
+			<span><strong>&nbsp;<%=activeModel%>&nbsp;</strong></span>
 			<button id="nav-forward" class="btn btn-small">&gt;</button>
 			<button id="nav-end" class="btn btn-small">&gt;&gt;</button>
 			<span><strong>On contract <%=activeModel%> of <%=totalModels%></strong></span>
@@ -33,11 +34,11 @@
 	<div class="row">
 		
 		<div class="col-md-6">
-			<h2>Original Data</h2>
+			<h3>Original Data</h3>
 			<table class="table table-striped">
 				<tbody>
 					<tr>
-						<td><strong>Title</strong></td>
+						<td><strong>Contract Title</strong></td>
 						<td><%=contract.title%></td>
 					</tr>
 					<tr><td><strong>Description</strong></td><td>Lorum ipsum...</td></tr>
@@ -46,10 +47,29 @@
 
 				</tbody>
 			</table>
+
+			<h3>Documents</h3>
+			<ul>
+				<li><a href="#">Document Link 1</a></li>
+				<li><a href="#">Document Link 2</a></li>
+				<li><a href="#">Document Link 3</a></li>
+				<li><a href="#">etc.</a></li>
+			</ul>
 		</div>
 
 		<div class="col-md-6">
-			<h2>Coding</h2>
+			<h3>Coding</h3>
+			<form>
+				<label for="title">Title:&nbsp;&nbsp;&nbsp; </label><input name="title" type="text" placeholder="contract title">
+				</br></br>
+				<label for="type">Type:&nbsp;&nbsp;&nbsp;</label>
+				<select name="type">
+					<option>Road</option>
+					<option>Hospital</option>
+				</select>
+				</br></br>
+				<p>etc...</p>
+			</form>
 		</div>
 
 	</div>

@@ -1,5 +1,13 @@
 var logger = require('./logger.js');
 var routes = [];
+var mongodb = require('mongodb').MongoClient;
+var mongoObjectId = require('mongodb').ObjectId;
+var fs = require('fs');
+var async = require('async');
+
+var conf = JSON.parse(fs.readFileSync('./conf.json').toString());
+var dbUrl = 'mongodb://' + conf.mongoHost + ':' + conf.mongoPort + '/' + conf.dbName;
+
 
 routes.push({
 	path: '/admin',
@@ -61,8 +69,10 @@ routes.push({
 	path: '/contracts', 
 	method: 'GET',
 	handler: function(request, reply) {
-		var replyText = '<html><head><link rel="stylesheet" href="bootstrap.min.css"></head><body><div class="container"><h1>All the Contracts</h1><table class="table table-striped">'
-		replyText = replyText + '<thead><tr><th>Title</th><th>Coder 1</th><th>Coder 2</th><th>Fully Assigned</th></tr></thead><tbody>'
+		var replyText = '<html><head><link rel="stylesheet" href="bootstrap.min.css"></head><body><div class="container"><h1>All the Contracts</h1>'
+		replyText = replyText + '<p>This isn\'t meant as a functional page, but rather just a place to check if any of the contracts are being assigned twice to the same coder, or look for any other issues</p>';
+		replyText = replyText + '<p><strong>Back to <a href="admin">admin</a></strong></p>'
+		replyText = replyText + '<table class="table table-striped"><thead><tr><th>Title</th><th>Coder 1</th><th>Coder 2</th><th>Fully Assigned</th></tr></thead><tbody>'
 		mongodb.connect(dbUrl, function(err, db) {
 			if (err) logger.error(err);
 			db.collection('contracts').find({}).toArray(function(err, contracts) {

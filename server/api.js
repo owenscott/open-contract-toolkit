@@ -22,12 +22,23 @@ function getEligible(coderId, callback) {
 	var eligibleContracts = 0;
 
 	coderId = mongoObjectId(coderId);
-	
+
 	mongodb.connect(dbUrl, function(err, db) {
-		db.collection('contracts').find({assigned: {$ne: coderId}, fullyAssigned: false}).toArray(function(err, contracts) {
-			callback(err, (contracts && contracts.length) || 0);
-			db.close();
-		})	
+		db.collection('coders').find({_id: coderId}).toArray(function(err, coders) {
+			// if coder is inactive then no elegible contracts
+			if (!coders[0].active) {
+				db.close();
+				callback(err, 0);
+			}
+			// otherwise figure out how many
+			else {
+				db.collection('contracts').find({assigned: {$ne: coderId}, fullyAssigned: false}).toArray(function(err, contracts) {
+					callback(err, (contracts && contracts.length) || 0);
+					db.close();
+				})	
+			}
+		})
+
 	})
 
 }
@@ -85,15 +96,11 @@ routes.push({
 	},
 	handler: function(request, reply) {
 
-		updateDb(function() {
+		mongodb.connect(dbUrl, function(err, db) {
 
-			mongodb.connect(dbUrl, function(err, db) {
-
-				db.collection('coders').find({}).toArray(function(err, coders) {
-					reply(coders);
-					db.close();
-				})
-
+			db.collection('coders').find({}).toArray(function(err, coders) {
+				reply(coders);
+				db.close();
 			})
 
 		})
@@ -142,7 +149,72 @@ routes.push({
 		cors: true
 	},
 	handler: function(request, reply) {
-		logger.warn('Aaaaah, someone is trying to update a coder using PUT')	
+		var coderId = mongoObjectId(request.params._id);
+		var updateObj = request.payload;
+		var assignedContracts = _.clone(updateObj.assigned);
+		updateObj._id = coderId;
+
+		// clear out the coder's assignments if they are being put inactive
+		if (!updateObj.active) {
+			// strip the coder of all of their contracts
+			updateObj.eligibleContracts = 0;
+			updateObj.assigned = [];
+			async.each(assignedContracts, function(assignedContractId, callback) {
+				mongodb.connect(dbUrl, function(err, db) {
+					// find the contract and remove the coder from its assignment
+					assignedContractIdText = assignedContractId;
+					assignedContractId = mongoObjectId(assignedContractId);
+					db.collection('contracts').find({_id: assignedContractId}).toArray(function(err, contracts) {
+						var contract = contracts[0];
+						var newAssigned = []
+						// convoluted for loop approach b/c Array.indexOf() doesn't work w/ mongo object ids
+						contract.assigned.forEach(function(a) {
+							if (a != request.params._id) {
+								newAssigned.push(a);
+							}
+						})
+						contract.assigned = newAssigned
+						// remove its fullyassigned status if needed
+						if (contract.assigned.length < 2 && contract.fullyAssigned) {
+							contract.fullyAssigned = false;
+						}
+						// update the contract in the db
+						db.collection('contracts').update({_id: assignedContractId}, contract, function(err, result) {
+							if (err) logger.error(err);
+							db.close();
+							callback();
+						})
+					})	
+				})
+			},
+			function(err) {
+				// update the coder
+				mongodb.connect(dbUrl, function(err, db) {
+					db.collection('coders').update({_id: coderId}, updateObj, function(err, result) {
+						if (err) logger.error(err);
+						reply(updateObj);
+						db.close();
+					})			
+				})
+			})
+		}
+		// otherwise just update normally
+		else {
+			getEligible(coderId, function(err, numEligible) {
+				updateObj.eligibleContracts = numEligible
+				mongodb.connect(dbUrl, function(err, db) {
+					if (err) logger.error(err);
+					// update the coder
+					db.collection('coders').update({_id: coderId}, request.payload, function(err, result) {
+						if (err) logger.error(err);
+						reply(updateObj);
+						db.close();
+					})
+				})
+			})
+		}
+
+	
 	}
 })
 
@@ -162,12 +234,27 @@ routes.push({
 				getEligible(coder._id, function(err, numEligible) {
 					logger.info(coder._id, 'eligible for', numEligible);
 					coder.eligibleContracts = numEligible;
-					// send them back to the client to sync
-					reply(coder);
-					db.close();
+					// save the coder back into the db
+					db.collection('coders').update({_id: coder._id}, coder, function(err, result) {
+						if (err) logger.error(err);
+						// send them back to the client to sync
+						reply(coder);
+						db.close();
+					})
 				})
 			})
 		})
+	}
+})
+
+routes.push({
+	path: '/coders/{coderId}',
+	method: 'DELETE',
+	config: {
+		cors: true
+	},
+	handler: function(request, reply) {
+
 	}
 })
 
@@ -183,6 +270,21 @@ routes.push({
 	}
 })
 
+routes.push({
+	path: '/coders/{coderId}',
+	method: 'OPTIONS',
+	config: {
+		cors: true
+	},
+	handler: function(request, reply) {
+		reply();
+	}
+})
+
+
+// ===========================================================
+//    									  STATISTICS												 |
+// ===========================================================
 
 
 routes.push({
@@ -214,7 +316,7 @@ routes.push({
 
 
 // ===========================================================
-//    									  STATISTICS												 |
+//    									  IMPERATIVE												 |
 // ===========================================================
 
 

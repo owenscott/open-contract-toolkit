@@ -29,12 +29,12 @@ module.exports = Backbone.View.extend({
 		this.$coders.html('');
 
 		this.collection.models.forEach(function(coder) {
-
-			var coderRowView = new CoderRowView({
-				model: coder
-			});
-
-			self.$coders.append(coderRowView.render().el);;
+			if (coder.get('active')) {
+				var coderRowView = new CoderRowView({
+					model: coder
+				});
+				self.$coders.append(coderRowView.render().el);;
+			}
 
 		})
 

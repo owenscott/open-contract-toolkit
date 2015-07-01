@@ -30,13 +30,13 @@ module.exports = Backbone.View.extend({
 
 		this.collection.models.forEach(function(coder) {
 
-			console.log('aaaaa')
+			if (coder.get('active')) {
+				var coderRowView = new CoderRowView({
+					model: coder
+				});
 
-			var coderRowView = new CoderRowView({
-				model: coder
-			});
-
-			self.$coders.append(coderRowView.render().el);;
+				self.$coders.append(coderRowView.render().el);;	
+			}
 
 		})
 

@@ -17,18 +17,24 @@ module.exports = Backbone.View.extend({
 		var self = this;
 		this.template = _.template(fs.readFileSync(path.join(__dirname, '../templates/coder-table.ejs')).toString());
 		this.model.on('sync', function() {
+			console.log('sunk');
 			self.render();
 		})
 	},
 
 	render: function() {
-		console.log(this.model.toJSON());
-		this.$el.html(this.template(this.model.toJSON()));
+		if (this.model.get('active')) {
+			this.$el.html(this.template(this.model.toJSON()));
+		}
+		else {
+			this.$el.remove();
+		}
 		return this;
 	},
 
 	events: {
-		'click button': 'onButtonClick'
+		'click .assign-button': 'onButtonClick',
+		'click .coder-delete': 'onCoderDelete'
 	},
 
 	onButtonClick: function(e) {
@@ -66,8 +72,34 @@ module.exports = Backbone.View.extend({
 				})
 			})
 		})
+	},
 
+	onCoderDelete: function(e) {
 
+		var self = this;
+		e.preventDefault();
+		this.model.set('active', false);
+		this.model.save(null, {
+			success: function() {
+				console.log('success');
+				// re-render all of the other rows
+				console.log('successfully saved new model')
+				self.model.collection.models.forEach(function(model) {
+					console.log('fetching model')
+					model.fetch({
+						success: function() {
+							// silence
+						},
+						error: function() {
+							console.log('Error fetching model update');
+						}
+					})
+				})
+			},
+			error: function() {
+				console.log('error saving model');
+			}
+		})
 
 	}
 
