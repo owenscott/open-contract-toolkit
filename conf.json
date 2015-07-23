@@ -1,9 +1,10 @@
 {
-	"contentHost": "0.0.0.0",
-	"contentPort": 80,
-	"apiHost": "104.236.103.5",
+	"contentHost": "localhost",
+	"contentPort": 8000,
+	"apiHost": "localhost",
 	"apiPort": 8007,
 	"mongoHost": "localhost",
 	"mongoPort": 27017,
-	"dbName": "contract-test"
+	"dbName": "contract-test",
+	"codedCollection": "coded"
 }

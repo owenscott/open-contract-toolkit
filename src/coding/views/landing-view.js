@@ -6,9 +6,14 @@ var _ = require('underscore'),
 		async = require('async');
 
 var Coder = require('./../../shared/models/coder.js'),
-		Contracts = require('./../collections/contracts.js');
+		Contracts = require('./../collections/contracts.js'),
+		Record = require('./../../record/models/record.js');
+
+var RecordView = require('./../../record/views/record.js');
 
 var fs = require('fs');
+
+var conf = JSON.parse(fs.readFileSync('./conf.json').toString()); 
 
 module.exports = Backbone.View.extend({
 
@@ -28,23 +33,49 @@ module.exports = Backbone.View.extend({
 	},
 
 	render: function() {
+		
 		var self = this;
+		var activeContract = self.contracts.models[self._activeModelIndex];
+		var coderId = self.coder.toJSON()._id,
+				contractId = activeContract.toJSON()._id
 
 		if (!this._activeModelIndex) {
 			this._activeModelIndex = 1;
 		}
 		
-		console.log(self.contracts.models[self._activeModelIndex]);
-		console.log(self.coder);
-
 		self.$el.html(self.template({
 			activeModel: self._activeModelIndex,
 			totalModels: self.contracts.state.totalRecords,
-			contract: self.contracts.models[self._activeModelIndex].toJSON(),
+			contract: activeContract.toJSON(),
 			coder: self.coder.toJSON()
 		}));
-		
-		
+
+
+		$.get('http://' + conf.apiHost + ":" + conf.apiPort + '/coders/' + coderId + '/contracts/' + contractId + '/records', function(response) {
+
+			if (response) {
+				var record = new Record(response)			
+			}
+			else {
+				var record = new Record({
+					contractId: contractId,
+					coderId: coderId
+				})
+			}
+
+
+			console.log('successful ajax')
+			// render a view for the actual coding record
+			var recordView = new RecordView({
+				el: self.$el.find('#record'),
+				contractId: activeContract.get('_id'),
+				model: record
+			})
+
+			recordView.render();
+
+		})
+
 	},
 
 	navForward: function(e) {

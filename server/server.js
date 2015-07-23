@@ -21,6 +21,7 @@ var content = server.connection({
 api.route(apiRoutes);
 content.route(contentRoutes);
 
-server.start(function() {
+server.start(function(err) {
+	if (err) {logger.error(err.code)}
 	logger.info('server started');
 })

@@ -24,6 +24,7 @@ function getEligible(coderId, callback) {
 	coderId = mongoObjectId(coderId);
 
 	mongodb.connect(dbUrl, function(err, db) {
+		if (err) logger.error(err);
 		db.collection('coders').find({_id: coderId}).toArray(function(err, coders) {
 			// if coder is inactive then no elegible contracts
 			if (!coders[0].active) {
@@ -48,8 +49,7 @@ function updateDb(callback) {
 
 	mongodb.connect(dbUrl, function(err, db) {
 
-		if (err) console.log(err);
-
+		if (err) logger.error(err);
 		db.collection('contracts').find({}).toArray(function(err, contracts) {
 			if (err) logger.error(err);
 			db.collection('coders').find({}).toArray(function(err, coders) {
@@ -97,7 +97,7 @@ routes.push({
 	handler: function(request, reply) {
 
 		mongodb.connect(dbUrl, function(err, db) {
-
+			if (err) logger.error(err);
 			db.collection('coders').find({}).toArray(function(err, coders) {
 				reply(coders);
 				db.close();
@@ -120,6 +120,7 @@ routes.push({
 		var coderId = mongoObjectId(request.params.coderId);
 
 		mongodb.connect(dbUrl, function(err, db) {
+			if (err) logger.error(err);
 			// get the coder by ID
 			db.collection('coders').find({_id: coderId}).toArray(function(err, coders) {
 				if (coders.length > 1) console.log('ERROR: too many coders');
@@ -161,6 +162,7 @@ routes.push({
 			updateObj.assigned = [];
 			async.each(assignedContracts, function(assignedContractId, callback) {
 				mongodb.connect(dbUrl, function(err, db) {
+					if (err) logger.error(err);
 					// find the contract and remove the coder from its assignment
 					assignedContractIdText = assignedContractId;
 					assignedContractId = mongoObjectId(assignedContractId);
@@ -190,6 +192,7 @@ routes.push({
 			function(err) {
 				// update the coder
 				mongodb.connect(dbUrl, function(err, db) {
+					if (err) logger.error(err);
 					db.collection('coders').update({_id: coderId}, updateObj, function(err, result) {
 						if (err) logger.error(err);
 						reply(updateObj);
@@ -227,6 +230,7 @@ routes.push({
 	},
 	handler: function(request, reply) {
 		mongodb.connect(dbUrl, function(err, db) {
+			if (err) logger.error(err);
 			// add the new coder
 			db.collection('coders').insert(request.payload, function(err, result) {
 				var coder = result.ops[0]
@@ -295,6 +299,7 @@ routes.push({
 	},
 	handler: function(request, reply) {
 		mongodb.connect(dbUrl, function(err, db) {
+			if (err) logger.error(err);
 			var stats = {}
 			db.collection('contracts').find({}).toArray(function(err, arr) {
 				stats.count = arr.length;
@@ -396,6 +401,7 @@ routes.push( {
 		}
 
 		mongodb.connect(dbUrl, function(err, db) {
+			if (err) logger.error(err);
 			db.collection('contracts').find(queryObj).toArray(function(err, contracts) {
 
 				if (!contracts.slice(page*perPage, (page*perPage) + perPage).length) {
@@ -419,6 +425,169 @@ routes.push( {
 
 	}
 })
+
+
+// ===========================================================
+//    									CODED CONTRACTS 										 |
+// ===========================================================
+
+// get a coding record
+routes.push({
+	path: '/records/{recordId}',
+	method: 'GET',
+	config: {
+		cors: true
+	},
+	handler: function(request, reply) {
+		mongodb.connect(dbUrl, function(err, db) {
+			if (err) logger.error(err);
+			db.collection(conf.codedCollection).find({_id: mongoObjectId(request.params.codedId)}).toArray(function(err, records) {
+				if (err) logger.error(err);
+				if (records.length > 1) logger.warn('Something fishy...');
+				reply(records[0] || [])
+			})
+		})
+	}
+})
+
+// needed for CORS
+routes.push({
+	path: '/records',
+	method: 'OPTIONS',
+	config: {
+		cors: true
+	},
+	handler: function(request, reply) {
+		reply();
+	}
+})
+
+// needed for CORS
+routes.push({
+	path: '/records/{recordId}',
+	method: 'OPTIONS',
+	config: {
+		cors: true
+	},
+	handler: function(request, reply) {
+		reply();
+	}
+})
+
+// add a new record
+routes.push({
+	path: '/records',
+	method: 'POST',
+	config: {
+		cors: true
+	},
+	handler: function(request, reply) {
+		mongodb.connect(dbUrl, function(err, db) {
+			if (err) logger.error(err);
+			// add the new record
+			db.collection(conf.codedCollection).insert(request.payload, function(err, result) {
+				if (err) logger.error(err);
+				var record = result.ops[0]
+				reply(record);
+				db.close();
+			})
+		})
+	}
+})
+
+// update a record
+routes.push({
+	path: '/records/{recordId}',
+	method: 'PUT',
+	config: {
+		cors: true
+	},
+	handler: function(request, reply) {
+		mongodb.connect(dbUrl, function(err, db) {
+			if (err) logger.error(err);
+			console.log(request.payload);
+			// add the new record
+			var queryObj = {_id: mongoObjectId(request.params.recordId)}
+			request.payload._id = mongoObjectId(request.payload._id);
+			db.collection(conf.codedCollection).update(queryObj, request.payload, function(err, result) {
+				console.log(result);
+				if (err) logger.error(err);
+				reply(request.payload);
+				db.close();
+			})
+		})
+	}
+})
+
+
+// get the coding records for a particular contract
+routes.push({
+	path: '/contracts/{contractId}/records',
+	method: 'GET',
+	config: {
+		cors: true
+	},
+	handler: function(request, reply) {
+		mongodb.connect(dbUrl, function(err, db) {
+			if (err) logger.error(err);
+			db.collection(conf.codedCollection).find({contractId: request.params.contractId}).toArray(function(err, records) {
+				if (err) logger.error(err);
+				reply(records);
+				db.close();
+			})
+		})
+	}
+})
+
+// get the coding records for a particular user
+routes.push({
+	path: '/coders/{coderId}/records',
+	method: 'GET',
+	config: {
+		cors: true
+	},
+	handler: function(request, reply) {
+		mongodb.connect(dbUrl, function(err, db) {
+			if (err) logger.error(err);
+			db.collection(conf.codedCollection).find({coderId: request.params.coderId}).toArray(function(err, records) {
+				if (err) logger.error(err);
+				reply(records);
+				db.close();
+			})
+		})
+		
+	}
+})
+
+
+// get the coding record for a user and contract (should only ever return one)
+routes.push({
+	path: '/coders/{coderId}/contracts/{contractId}/records',
+	method: 'GET',
+	config: {
+		cors: true
+	},
+	handler: function(request, reply) {
+		mongodb.connect(dbUrl, function(err, db) {
+			if (err) logger.error(err);
+			var queryObj = {coderId: request.params.coderId, contractId: request.params.contractId};
+			db.collection(conf.codedCollection).find(queryObj).toArray(function(err, records) {
+				if (err) logger.error(err);
+				if (records.length > 1) {
+					// should only ever return one
+					logger.warn('Whaaaaatttt?')
+				}
+				reply((records && records[0]) || null);
+				db.close();
+			})
+		})
+		
+	}
+})
+
+
+
+
 
 // ===========================================================
 //    									    EXPORT  												 |
